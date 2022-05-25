@@ -8,32 +8,32 @@
 	using System.IO;
 	using System.IO.Compression;
 
+	public class Options
+	{
+		[Option('k', "key", Required = true, HelpText = "Your S3 key.")]
+		public string AWSKey { get; set; }
+
+		[Option('s', "secretkey", Required = true, HelpText = "Your S3 secret key.")]
+		public string AWSSecretKey { get; set; }
+
+		[Option('r', "region", Required = false, HelpText = "Your S3 region.")]
+		public string AWSRegion { get; set; }
+
+		[Option('p', "path", Required = true, HelpText = "Directory to zip and upload, or file to upload.")]
+		public string Path { get; set; }
+
+		[Option('b', "bucket", Required = true, HelpText = "The bucket to upload to.")]
+		public string Bucket { get; set; }
+
+		[Option('n', "name", Required = false, HelpText = "Optional new name to use in S3.")]
+		public string S3Name { get; set; }
+
+		[Option('d', "subdir", Required = false, HelpText = "Optional subdir to upload to in S3.")]
+		public string S3Subdir { get; set; }
+	}
+
 	class Program
 	{
-		public class Options
-		{
-			[Option('k', "key", Required = true, HelpText = "Your S3 key.")]
-			public string AWSKey { get; set; }
-
-			[Option('s', "secretkey", Required = true, HelpText = "Your S3 secret key.")]
-			public string AWSSecretKey { get; set; }
-
-			[Option('r', "region", Required = false, HelpText = "Your S3 region.")]
-			public string AWSRegion { get; set; }
-
-			[Option('p', "path", Required = true, HelpText = "Directory to zip and upload, or file to upload.")]
-			public string Path { get; set; }
-
-			[Option('b', "bucket", Required = true, HelpText = "The bucket to upload to.")]
-			public string Bucket { get; set; }
-
-			[Option('n', "name", Required = false, HelpText = "Optional new name to use in S3.")]
-			public string S3Name { get; set; }
-
-			[Option('d', "subdir", Required = false, HelpText = "Optional subdir to upload to in S3.")]
-			public string S3Subdir { get; set; }
-		}
-
 		static int Main(string[] args)
 		{
 			int returnVal = 3;
@@ -70,21 +70,34 @@
 				var endPoint = string.IsNullOrEmpty(options.AWSRegion) ? RegionEndpoint.EUNorth1 : RegionEndpoint.GetBySystemName(options.AWSRegion);
 				var client = new AmazonS3Client(options.AWSKey.ToString(), options.AWSSecretKey.ToString(), endPoint);
 				var utility = new TransferUtility(client);
+				var uploader = new S3Uploader(utility);
+
 				FileAttributes pathAttributes = File.GetAttributes(options.Path);
 				if (pathAttributes.HasFlag(FileAttributes.Directory))
 				{
-					returnVal = UploadDirectoryToS3(options, utility);
+					returnVal = uploader.UploadDirectoryToS3(options);
 				}
 				else
 				{
-					returnVal = UploadFileToS3(options, utility);
+					returnVal = uploader.UploadFileToS3(options);
 				}
 			});
 
 			return returnVal;
 		}
+	}
 
-		private static int UploadDirectoryToS3(Options options, TransferUtility utility)
+	class S3Uploader
+	{
+		private TransferUtility _transferUtility;
+		private int _currentPercentDone = 0;
+
+		public S3Uploader(TransferUtility transferUtility)
+		{
+			_transferUtility = transferUtility;
+		}
+
+		public int UploadDirectoryToS3(Options options)
 		{
 			Console.WriteLine("UploadToS3: Attempting to upload directory " + options.Path);
 			try
@@ -109,7 +122,7 @@
 				Console.WriteLine("UploadToS3: Uploading archive...");
 				request.FilePath = archivePath;
 				request.UploadProgressEvent += Request_UploadProgressEvent;
-				utility.Upload(request);
+				_transferUtility.Upload(request);
 
 				Console.WriteLine("UploadToS3: Deleting temporary archive.");
 				File.Delete(archivePath);
@@ -123,7 +136,7 @@
 			}
 		}
 
-		private static int UploadFileToS3(Options options, TransferUtility utility)
+		public int UploadFileToS3(Options options)
 		{
 			Console.WriteLine("UploadToS3: Attempting to upload file " + options.Path);
 			try
@@ -137,7 +150,7 @@
 				request.UploadProgressEvent += Request_UploadProgressEvent;
 
 				Console.WriteLine("UploadToS3: Uploading file...");
-				utility.Upload(request);
+				_transferUtility.Upload(request);
 				return 0;
 			}
 			catch (Exception e)
@@ -148,9 +161,14 @@
 			}
 		}
 
-		private static void Request_UploadProgressEvent(object sender, UploadProgressArgs e)
+		private void Request_UploadProgressEvent(object sender, UploadProgressArgs e)
 		{
-			Console.WriteLine("UploadToS3: Upload progress: " + e.PercentDone + "%");
+			if (e.PercentDone != _currentPercentDone)
+			{
+				Console.WriteLine("UploadToS3: Upload progress: " + e.PercentDone + "%");
+			}
+
+			_currentPercentDone = e.PercentDone;
 		}
 	}
 }
