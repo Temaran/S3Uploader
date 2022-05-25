@@ -1,4 +1,4 @@
-﻿namespace S3Uploader
+﻿namespace TemaranGHAS3Uploader
 {
 	using System;
 	using Amazon;
@@ -32,6 +32,25 @@
 		public string S3Subdir { get; set; }
 	}
 
+	public static class Logging
+	{
+		public static void LogInfo(string logString)
+		{
+			var prevColor = Console.ForegroundColor;
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.WriteLine("TemaranGHAS3Uploader: " + logString);
+			Console.ForegroundColor = prevColor;
+		}
+
+		public static void LogError(string logString)
+		{
+			var prevColor = Console.ForegroundColor;
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine("TemaranGHAS3Uploader ERROR: " + logString);
+			Console.ForegroundColor = prevColor;
+		}
+	}
+
 	class Program
 	{
 		static int Main(string[] args)
@@ -39,33 +58,30 @@
 			int returnVal = 3;
 			Parser.Default.ParseArguments<Options>(args).WithParsed(options =>
 			{
-				Console.ForegroundColor = ConsoleColor.Red;
 				if (options == null)
 				{
-					Console.WriteLine("UploadToS3 Error: Could not parse arguments.");
+					Logging.LogError("Could not parse arguments.");
 					return;
 				}
 
 				if (options.AWSKey.Length <= 0 || options.AWSSecretKey.Length <= 0)
 				{
-					Console.WriteLine("UploadToS3 Error: AWSKey or AWSSecretKey are not valid. You must provide these. See here how to generate them: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html");
+					Logging.LogError("AWSKey or AWSSecretKey are not valid. You must provide these. See here how to generate them: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html");
 					return;
 				}
 
 				if (!Directory.Exists(options.Path) && !File.Exists(options.Path))
 				{
-					Console.WriteLine("UploadToS3 Error: Input path must be a valid file or directory. This is neither: {0}", options.Path);
+					Logging.LogError(String.Format("Input path must be a valid file or directory. This is neither: {0}", options.Path));
 					return;
 				}
 
 				if (string.IsNullOrEmpty(options.Bucket))
 				{
-					Console.WriteLine("UploadToS3 Error: You must specify a bucket to use.");
+					Logging.LogError("You must specify a bucket to use.");
 					return;
 				}
 				options.Bucket = options.Bucket.ToLower();
-
-				Console.ForegroundColor = ConsoleColor.White;
 
 				var endPoint = string.IsNullOrEmpty(options.AWSRegion) ? RegionEndpoint.EUNorth1 : RegionEndpoint.GetBySystemName(options.AWSRegion);
 				var client = new AmazonS3Client(options.AWSKey.ToString(), options.AWSSecretKey.ToString(), endPoint);
@@ -99,7 +115,7 @@
 
 		public int UploadDirectoryToS3(Options options)
 		{
-			Console.WriteLine("UploadToS3: Attempting to upload directory " + options.Path);
+			Logging.LogInfo("Attempting to upload directory " + options.Path);
 			try
 			{
 				var path = new DirectoryInfo(options.Path);
@@ -115,30 +131,39 @@
 				};
 
 				var archivePath = Path.Combine(path.Parent.FullName, "TempS3Archive.zip");
-				Console.WriteLine("UploadToS3: Creating temporary archive to upload in the parent dir: " + archivePath);
+				Logging.LogInfo("Creating temporary archive to upload in the parent dir: " + archivePath);
 				File.Delete(archivePath);
 				ZipFile.CreateFromDirectory(options.Path, archivePath);
 
-				Console.WriteLine("UploadToS3: Uploading archive...");
+				Logging.LogInfo("Uploading archive...");
 				request.FilePath = archivePath;
 				request.UploadProgressEvent += Request_UploadProgressEvent;
 				_transferUtility.Upload(request);
 
-				Console.WriteLine("UploadToS3: Deleting temporary archive.");
+				Logging.LogInfo("Deleting temporary archive.");
 				File.Delete(archivePath);
+
+				var summaryText = string.Format("{0} uploaded to: https://{1}.s3.amazonaws.com/{2}/{0}", request.Key, options.Bucket, options.S3Subdir);
+				Logging.LogInfo("Writing " + summaryText + " to summary...");
+				using (var summaryAppender = File.AppendText(Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY")))
+				{
+					summaryAppender.WriteLine(summaryText);
+					summaryAppender.Flush();
+				}
+
 				return 0;
 			}
 			catch (Exception e)
 			{
-				Console.ForegroundColor = ConsoleColor.Red;
-				Console.WriteLine("UploadToS3 Error: Could not upload directory: " + e.ToString());
+				Logging.LogError("Could not upload directory: " + e.ToString());
 				return 1;
 			}
 		}
 
 		public int UploadFileToS3(Options options)
 		{
-			Console.WriteLine("UploadToS3: Attempting to upload file " + options.Path);
+			Logging.LogInfo("Attempting to upload file " + options.Path);
+
 			try
 			{
 				var request = new TransferUtilityUploadRequest
@@ -149,14 +174,21 @@
 				};
 				request.UploadProgressEvent += Request_UploadProgressEvent;
 
-				Console.WriteLine("UploadToS3: Uploading file...");
+				Logging.LogInfo("Uploading file...");
 				_transferUtility.Upload(request);
+
+				var summaryText = string.Format("{0} uploaded to: https://{1}.s3.amazonaws.com/{2}/{0}", request.Key, options.Bucket, options.S3Subdir);
+				Logging.LogInfo("Writing " + summaryText + " to summary...");
+				using (var summaryAppender = File.AppendText(Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY")))
+				{
+					summaryAppender.WriteLine(summaryText);
+					summaryAppender.Flush();
+				}
 				return 0;
 			}
 			catch (Exception e)
 			{
-				Console.ForegroundColor = ConsoleColor.Red;
-				Console.WriteLine("UploadToS3 Error: Could not upload file: " + e.ToString());
+				Logging.LogError("Could not upload file: " + e.ToString());
 				return 1;
 			}
 		}
@@ -165,7 +197,7 @@
 		{
 			if (e.PercentDone != _currentPercentDone)
 			{
-				Console.WriteLine("UploadToS3: Upload progress: " + e.PercentDone + "%");
+				Logging.LogInfo("Upload progress: " + e.PercentDone + "%");
 			}
 
 			_currentPercentDone = e.PercentDone;
