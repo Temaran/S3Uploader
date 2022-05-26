@@ -48,7 +48,7 @@ namespace TemaranGHATestRunnerForUE4
 			var outputString = string.Format("{0} {1}", TestSucceeded ? ":heavy_check_mark:" : ":x:", Name);
 			foreach (var error in Errors)
 			{
-				outputString += string.Format("\n\t{0}", error);
+				outputString += string.Format("\n> {0}", error);
 			}
 
 			return outputString;
@@ -113,25 +113,29 @@ namespace TemaranGHATestRunnerForUE4
 
 				using (var summaryAppender = File.AppendText(Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY")))
 				{
-					var statusColor = (failedTests.Count == 0) ? "green" : "red";
-
 					summaryAppender.WriteLine("Test run report! :rocket:");
 					summaryAppender.WriteLine("----------------");
-					summaryAppender.WriteLine(string.Format("<span style=\"color: {0}\">{1}/{2} tests succeeded!</span>", statusColor, allTests.Count - failedTests.Count, allTests.Count));
-					summaryAppender.WriteLine("Tests ran:");
+					summaryAppender.WriteLine(string.Format("{0} {1}/{2} tests succeeded!\n\n", (failedTests.Count == 0) ? ":star:" : ":anger:", allTests.Count - failedTests.Count, allTests.Count));
 
 					foreach(var test in allTests)
 					{
-						summaryAppender.WriteLine(string.Format("<span style=\"color: {0}\">{1}</span>\n", statusColor, test));
+						summaryAppender.WriteLine(string.Format("{0}\n", test));
 					}
 
 					summaryAppender.Flush();
 				}
-
-				returnVal = (failedTests.Count == 0) ? 0 : 1;
 			});
 
-			return returnVal;
+			if (returnVal == 0)
+			{
+				Logging.LogInfo("Tests ran successfully!");
+				return 0;
+			}
+			else
+			{
+				Logging.LogError("Tests ran with errors. Check the summary or the above log for details.");
+				return 2;
+			}
 		}
 	}
 }
