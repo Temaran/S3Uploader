@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Experiments", "Experiments\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TemaranGHAS3Uploader", "TemaranGHAS3Uploader\TemaranGHAS3Uploader.csproj", "{DD411DAF-B822-4047-AA83-971E59CF9F06}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TemaranGHATestRunnerForUE4", "TemaranGHATestRunnerForUE4\TemaranGHATestRunnerForUE4.csproj", "{F78C4B9E-1035-429E-BD04-79A3D9A878B2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TemaranGHATestRunnerForUE4", "TemaranGHATestRunnerForUE4\TemaranGHATestRunnerForUE4.csproj", "{F78C4B9E-1035-429E-BD04-79A3D9A878B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TemaranGHASmokeTesterForUE4", "TemaranGHASmokeTesterForUE4\TemaranGHASmokeTesterForUE4.csproj", "{150855E3-A6CC-45D5-8ECE-0D3F49DCC90F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{F78C4B9E-1035-429E-BD04-79A3D9A878B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F78C4B9E-1035-429E-BD04-79A3D9A878B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F78C4B9E-1035-429E-BD04-79A3D9A878B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{150855E3-A6CC-45D5-8ECE-0D3F49DCC90F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{150855E3-A6CC-45D5-8ECE-0D3F49DCC90F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{150855E3-A6CC-45D5-8ECE-0D3F49DCC90F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{150855E3-A6CC-45D5-8ECE-0D3F49DCC90F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
