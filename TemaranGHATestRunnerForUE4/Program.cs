@@ -62,7 +62,10 @@ namespace TemaranGHATestRunnerForUE4
 
 		static int Main(string[] args)
 		{
-			int returnVal = 2;
+			FunctionalTest currentTest = null;
+			HashSet<FunctionalTest> allTests = new();
+			HashSet<FunctionalTest> failedTests = new();
+
 			Parser.Default.ParseArguments<Options>(args).WithParsed(options =>
 			{
 				if (!File.Exists(options.InputLogPath))
@@ -71,9 +74,6 @@ namespace TemaranGHATestRunnerForUE4
 					return;
 				}
 
-				FunctionalTest currentTest = null;
-				HashSet<FunctionalTest> allTests = new();
-				HashSet<FunctionalTest> failedTests = new();
 				var logLines = File.ReadAllLines(options.InputLogPath);
 				foreach(var line in logLines)
 				{
@@ -126,7 +126,7 @@ namespace TemaranGHATestRunnerForUE4
 				}
 			});
 
-			if (returnVal == 0)
+			if (failedTests.Count == 0)
 			{
 				Logging.LogInfo("Tests ran successfully!");
 				return 0;
@@ -134,7 +134,7 @@ namespace TemaranGHATestRunnerForUE4
 			else
 			{
 				Logging.LogError("Tests ran with errors. Check the summary or the above log for details.");
-				return 2;
+				return 1;
 			}
 		}
 	}
