@@ -54,13 +54,13 @@ namespace TemaranGHASmokeTesterForUE4
 				var startInfo = new ProcessStartInfo
 				{
 					FileName = options.InputStageBinaryPath,
-					Arguments = string.Format("-NoSound -Log=\"{0}\" -{1}", LogPathName, options.SmokeFlag)
+					Arguments = string.Format("-NoSound -Log=\"{0}\" -{1}", LogPathName, options.SmokeFlag),
+					UseShellExecute = true
 				};
 
 				Process.Start(startInfo).WaitForExit();
-
-				var di = new DirectoryInfo(options.InputStageBinaryPath);
-				var logs = Directory.GetFiles(di.FullName, LogPathName, SearchOption.AllDirectories);
+				
+				var logs = Directory.GetFiles(Path.GetDirectoryName(options.InputStageBinaryPath), LogPathName, SearchOption.AllDirectories);
 				if (logs.Length <= 0)
 				{
 					Logging.LogError("No smoke test log found.");
